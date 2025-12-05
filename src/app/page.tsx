@@ -11,7 +11,7 @@ import Grid from "@/library/components/Grid";
 import { useRouter } from "next/navigation";
 import { useSoundManager } from "@/hooks/useSoundManger";
 
-function page() {
+export default function Page() {
   const { playSound } = useSoundManager();
   const Router = useRouter();
   return (
@@ -81,8 +81,6 @@ function page() {
     </BackgroundWrapper>
   );
 }
-
-export default page;
 
 {
   /* <div className="absolute flex h-screen w-full justify-end px-10">

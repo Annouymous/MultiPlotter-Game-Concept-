@@ -3,22 +3,24 @@ import { useGame } from "@/context/GameContext";
 import BackgroundWrapper from "@/library/components/BackgroundWrapper";
 import Board from "@/library/components/Board";
 import ContentWrapper from "@/library/components/ContentWrapper";
-import React from "react";
+import React, { useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
-function page() {
+export default function Page() {
   const { handleReveal, ChancesLeft, cards, initializeGame } = useGame();
-  React.useEffect(() => {
+  
+  useEffect(() => {
     initializeGame("medium");
-  }, []);
-  React.useEffect(() => {
+  }, [initializeGame]);
+  
+  useEffect(() => {
     if (ChancesLeft < 0) {
       toast.error(
         "There are no chances left. You must win the game it's easy mode"
       );
       initializeGame("easy");
     }
-  }, [ChancesLeft]);
+  }, [ChancesLeft, initializeGame]);
 
   return (
     <BackgroundWrapper background="dark">
@@ -29,5 +31,3 @@ function page() {
     </BackgroundWrapper>
   );
 }
-
-export default page;

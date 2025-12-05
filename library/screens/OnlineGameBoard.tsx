@@ -12,6 +12,7 @@ import ContentWrapper from "../components/ContentWrapper";
 import OnlineBoard from "../components/OnlineBoard";
 import WinnerModal from "../components/WinnerModal";
 import SoundControl from "../components/SoundControl";
+import LobbyScreen from "../components/LobbyScreen";
 import { Button } from "@/components/ui/button";
 import LoadingSystem from "../components/Loading";
 import GameLoading from "../components/GameLoading";
@@ -26,8 +27,45 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
   const [GameInitialization, setGameInitialization] = useState(true);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState<number>(30);
+  const [matchedPairs, setMatchedPairs] = useState<number>(0);
+  const [totalPairs, setTotalPairs] = useState<number>(0);
+  const [movesCount, setMovesCount] = useState<number>(0);
+  const [gameDuration, setGameDuration] = useState<number>(0);
   const { playSound, stopSound } = useSoundManager();
   const [backgroundMusicStarted, setBackgroundMusicStarted] = useState(false);
+
+  // Calculate matched pairs
+  useEffect(() => {
+    if (OnlineGameSession?.gameCards) {
+      const matched = OnlineGameSession.gameCards.filter((c) => c.isMatched).length / 2;
+      const total = OnlineGameSession.gameCards.length / 2;
+      setMatchedPairs(matched);
+      setTotalPairs(total);
+    }
+  }, [OnlineGameSession?.gameCards]);
+
+  // Track moves count
+  useEffect(() => {
+    if (OnlineGameSession?.gameCards) {
+      // Count total flips (each pair of flips = 1 move)
+      const flippedCards = OnlineGameSession.gameCards.filter((c) => c.flippedAt);
+      setMovesCount(Math.floor(flippedCards.length / 2));
+    }
+  }, [OnlineGameSession?.gameCards]);
+
+  // Track game duration
+  useEffect(() => {
+    if (OnlineGameSession?.startedAt && OnlineGameSession?.gameState === GAME_STATES.PLAYING) {
+      const interval = setInterval(() => {
+        const startTime = OnlineGameSession.startedAt?.toMillis() || 0;
+        const currentTime = Date.now();
+        const duration = Math.floor((currentTime - startTime) / 1000);
+        setGameDuration(duration);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [OnlineGameSession?.startedAt, OnlineGameSession?.gameState]);
 
   // Start background music when game starts
   useEffect(() => {
@@ -64,7 +102,7 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
 
   // Turn timer countdown
   useEffect(() => {
-    if (!OnlineGameSession?.turnStartedAt) return;
+    if (!OnlineGameSession?.turnStartedAt || OnlineGameSession?.gameState !== GAME_STATES.PLAYING) return;
 
     const interval = setInterval(() => {
       const turnStartTime = OnlineGameSession.turnStartedAt?.toMillis() || 0;
@@ -87,7 +125,7 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [OnlineGameSession?.turnStartedAt, OnlineGameSession?.currentPlayerId, roomId, userIdentification]);
+  }, [OnlineGameSession?.turnStartedAt, OnlineGameSession?.currentPlayerId, OnlineGameSession?.gameState, roomId, userIdentification]);
 
   // Listen for game state changes
   useEffect(() => {
@@ -102,7 +140,8 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
           // Play turn change sound when turn switches
           if (
             OnlineGameSession &&
-            OnlineGameSession.currentPlayerId !== roomData.currentPlayerId
+            OnlineGameSession.currentPlayerId !== roomData.currentPlayerId &&
+            roomData.gameState === GAME_STATES.PLAYING
           ) {
             playSound("turn-change");
           }
@@ -181,6 +220,17 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
     toast.success("Play Again feature - to be implemented by host");
   };
 
+  // Show lobby if game hasn't started
+  if (OnlineGameSession && (OnlineGameSession.gameState === GAME_STATES.LOBBY || OnlineGameSession.gameState === GAME_STATES.WAITING)) {
+    return (
+      <BackgroundWrapper background="Colorful">
+        <Toaster />
+        <SoundControl />
+        <LobbyScreen room={OnlineGameSession} currentPlayerId={userIdentification} />
+      </BackgroundWrapper>
+    );
+  }
+
   return (
     <BackgroundWrapper background="Colorful">
       <Toaster />
@@ -201,6 +251,15 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
         </div>
       )}
 
+      {/* Matched Pairs Counter */}
+      {OnlineGameSession?.gameState === GAME_STATES.PLAYING && (
+        <div className="fixed right-4 top-4 z-50">
+          <div className="rounded-full border-2 border-white/30 bg-white/10 px-6 py-2 font-bold text-white shadow-lg backdrop-blur-sm">
+            🎯 {matchedPairs}/{totalPairs} Pairs
+          </div>
+        </div>
+      )}
+
       <div className="z-30 mx-auto max-w-7xl space-y-3">
         {OnlineGameSession?.gameCards && (
           <div className="z-40 flex w-full flex-row items-center justify-between">
@@ -209,6 +268,8 @@ function OnlineGameBoard({ room, type }: { room: string; type: string }) {
               players={OnlineGameSession?.players}
               currentPlayerId={OnlineGameSession?.currentPlayerId}
               userPlayerId={userIdentification}
+              movesCount={movesCount}
+              gameDuration={gameDuration}
             />
           </div>
         )}
