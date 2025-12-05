@@ -9,7 +9,7 @@ import ContentWrapper from "@/library/components/ContentWrapper";
 import LocalGameHeader from "@/library/components/LocalGameHeader";
 import toast, { Toaster } from "react-hot-toast";
 
-function page() {
+export default function Page() {
   const {
     initializeGame,
     setTimeLeft,
@@ -18,9 +18,10 @@ function page() {
     cards,
     handleReveal,
   } = useGame();
+  
   useEffect(() => {
     initializeGame("easy");
-  }, []);
+  }, [initializeGame]);
 
   useEffect(() => {
     if (ChancesLeft < 0) {
@@ -29,7 +30,7 @@ function page() {
       );
       initializeGame("easy");
     }
-  }, [ChancesLeft]);
+  }, [ChancesLeft, initializeGame]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -41,7 +42,7 @@ function page() {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [TimeLeft]);
+  }, [TimeLeft, setTimeLeft, initializeGame]);
 
   return (
     <BackgroundWrapper background="dark">
@@ -53,5 +54,3 @@ function page() {
     </BackgroundWrapper>
   );
 }
-
-export default page;

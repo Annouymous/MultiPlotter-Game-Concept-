@@ -22,6 +22,7 @@ export interface PlayerType {
   score: number;
   isConnected: boolean;
   isJoined: boolean;
+  isReady?: boolean; // Added for lobby ready status
   VerificationId: string;
   color?: string; // Player color for card borders
 }
