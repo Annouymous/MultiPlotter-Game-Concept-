@@ -1,6 +1,6 @@
 import { v4 as uuid4 } from "uuid";
 import { Host } from "./GenerateHost";
-import { GAME_STATES } from "@/constants/GameStates";
+import { GAME_STATES } from "@/constants/GameRoom";
 import { serverTimestamp } from "firebase/firestore";
 
 const host = Host;
