@@ -63,6 +63,7 @@ export const GameProvider = ({
     roomId: string,
     playerId: string
   ) => {
+    // Don't play sound here - let OnlineGameBoard handle it based on match result
     playSound("CardFlip-2");
     handleMatchLogic(card, roomId, playerId, OnlineGameSession);
   };
@@ -78,12 +79,14 @@ export const GameProvider = ({
         const [first, second] = newFlipped;
         if (first.identifier === second.identifier) {
           // Match found
+          playSound("match-success");
           setTimeout(() => {
             setFlippedCards([]);
             setIsProcessing(false); // Unlock
           }, 1000);
         } else {
           // No match
+          playSound("match-fail");
           setTimeout(() => {
             setCards((prevCards) =>
               prevCards.map((item) =>
