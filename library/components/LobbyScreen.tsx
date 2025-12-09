@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RoomType, GAME_STATES, PlayerType } from "@/constants/GameRoom";
 import { Button } from "@/components/ui/button";
 import { FaCopy, FaCheck, FaShare, FaCrown, FaUser } from "react-icons/fa";
@@ -9,19 +9,67 @@ import { setPlayerReady, startGame, leaveRoom } from "../functions/OnlineGameMan
 import { useRouter } from "next/navigation";
 import QRCodeShare from "./QRCodeShare";
 import { motion } from "framer-motion";
+import { doc, onSnapshot } from "firebase/firestore";
+import { DB } from "@/Firebase/config";
+import { useSoundManager } from "@/hooks/useSoundManger";
 
 interface LobbyScreenProps {
   room: RoomType;
   currentPlayerId: string;
 }
 
-function LobbyScreen({ room, currentPlayerId }: LobbyScreenProps) {
+function LobbyScreen({ room: initialRoom, currentPlayerId }: LobbyScreenProps) {
   const [copied, setCopied] = useState(false);
+  const [room, setRoom] = useState(initialRoom);
   const router = useRouter();
+  const { playSound } = useSoundManager();
+  
   const isHost = room.Host.VerificationId === currentPlayerId;
   const currentPlayer = room.players.find((p) => p.VerificationId === currentPlayerId);
   const allReady = room.players.every((p) => p.isReady || p.VerificationId === room.Host.VerificationId);
   const canStart = room.players.length >= 2 && allReady;
+
+  // CRITICAL FIX: Real-time listener for lobby updates
+  useEffect(() => {
+    const roomRef = doc(DB, "rooms", room.roomId);
+    
+    const unsubscribe = onSnapshot(roomRef, (doc) => {
+      if (doc.exists()) {
+        const roomData = doc.data() as RoomType;
+        
+        // Detect player join
+        if (roomData.players.length > room.players.length) {
+          playSound("Notification");
+          const newPlayer = roomData.players.find(
+            (p) => !room.players.some((rp) => rp.VerificationId === p.VerificationId)
+          );
+          if (newPlayer) {
+            toast.success(`${newPlayer.name} joined the room!`, {
+              duration: 2000,
+              icon: "👋",
+            });
+          }
+        }
+        
+        // Detect ready status change
+        roomData.players.forEach((player) => {
+          const oldPlayer = room.players.find((p) => p.VerificationId === player.VerificationId);
+          if (oldPlayer && !oldPlayer.isReady && player.isReady) {
+            if (player.VerificationId !== currentPlayerId) {
+              toast.success(`${player.name} is ready!`, {
+                duration: 1500,
+                icon: "✅",
+              });
+            }
+          }
+        });
+        
+        setRoom(roomData);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [room.roomId, room.players.length, currentPlayerId]);
 
   const handleCopyRoomCode = () => {
     const roomUrl = `${window.location.origin}/modes/online/${room.gameMode}/${room.roomId}`;
@@ -214,7 +262,7 @@ function PlayerSlot({
     >
       {/* Avatar */}
       <div
-        className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full text-2xl font-bold text-white"
+        className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-2xl font-bold text-white"
         style={{ backgroundColor: borderColor }}
       >
         {player.avatar ? (
