@@ -3,6 +3,7 @@ import React from "react";
 import { PlayerType, getPlayerColor } from "@/constants/GameRoom";
 import { FaUser, FaCrown } from "react-icons/fa";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface PlayerProfileProps {
   player: PlayerType;
@@ -52,12 +53,24 @@ function PlayerProfile({
         </motion.div>
       )}
 
-      {/* Avatar */}
+      {/* Avatar with Image support */}
       <div
-        className="flex h-12 w-12 items-center justify-center rounded-full text-xl font-bold text-white"
-        style={{ backgroundColor: borderColor }}
+        className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-xl font-bold text-white"
+        style={{
+          borderColor: borderColor,
+          backgroundColor: player.avatar ? "transparent" : borderColor,
+        }}
       >
-        <FaUser />
+        {player.avatar ? (
+          <Image
+            src={player.avatar}
+            alt={player.name}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <FaUser />
+        )}
       </div>
 
       {/* Player Info */}
